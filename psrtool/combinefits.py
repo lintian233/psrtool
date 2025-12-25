@@ -5,7 +5,9 @@ import numpy as np
 
 from typing import Optional
 from astropy.io import fits
+from tqdm import tqdm
 from your.formats.filwriter import make_sigproc_object
+
 
 from .psrfits import read_fits_header, get_header_time_info, is_time_contiguous, get_stokesi_data, downsample_data
 
@@ -32,7 +34,7 @@ def combinefits(fitsfiles: list[str], outfile: str, dchan_factor: int = 1, dt_fa
             if not is_time_contiguous(sorted_files[i - 1], fitsfile):
                 raise ValueError(f"Files {sorted_files[i - 1]} and {fitsfile} are not time contiguous.")
 
-    for fitsfile in sorted_files:
+    for fitsfile in tqdm(sorted_files, desc="Combining PSRFITS files"):
         data = get_stokesi_data(fitsfile)
         if dchan_factor > 1 or dt_factor > 1:
             data = downsample_data(data, dchan_factor=dchan_factor, dt_factor=dt_factor)
