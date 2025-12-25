@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-import os
 import argparse
+import glob
+from pathlib import Path
 
 from psrtool.combinefits import combinefits
 from psrtool.fits2fil import fits2fil, fil2fits
@@ -14,7 +15,7 @@ def combinefitscli():
     parser.add_argument(
         "fitsfiles",
         nargs="+",
-        help="Input PSRFITS files to combine.",
+        help="Input PSRFITS files or glob patterns to combine.",
     )
     parser.add_argument(
         "-o",
@@ -39,8 +40,13 @@ def combinefitscli():
 
     args = parser.parse_args()
 
+    expanded_files: list[str] = []
+    for pattern in args.fitsfiles:
+        matches = glob.glob(pattern)
+        expanded_files.extend(matches if matches else [pattern])
+
     combinefits(
-        args.fitsfiles,
+        expanded_files,
         args.outfile,
         dchan_factor=args.dchan_factor,
         dt_factor=args.dt_factor,
