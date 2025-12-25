@@ -1,0 +1,7 @@
+**/*.fits
+**/*.fil
+.coverage
+**/*.pyc
+**/*pycache*
+.vscode
+*.egg-info
