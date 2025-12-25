@@ -5,3 +5,6 @@
 **/*pycache*
 .vscode
 *.egg-info
+build/*
+wheelhouse/*
+dist/*

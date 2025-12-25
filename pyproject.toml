@@ -12,6 +12,7 @@ authors = [
 ]
 dependencies = [
     "numpy", 
+    "tqdm",
     "astropy",
     "your",
 ]
