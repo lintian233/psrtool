@@ -8,3 +8,5 @@
 build/*
 wheelhouse/*
 dist/*
+script/**
+scripts/**

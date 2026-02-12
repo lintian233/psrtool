@@ -29,7 +29,6 @@ class TestCombineFits(unittest.TestCase):
         self.assertEqual(test_header.nbits, out_header.nbits)
         self.assertEqual(test_header.nspectra, out_header.nspectra)
         self.assertEqual(test_header.fch1, out_header.fch1)
-        data_fil = test_fil.get_data(0, test_header.nspectra, pol=0)
-        data_fits = out_fil.get_data(0, out_header.nspectra, pol=0)
-        np.testing.assert_array_equal(data_fil, data_fits)
-        
+        data_test_fil = test_fil.get_data(0, test_header.nspectra, pol=0)
+        data_out_fil = out_fil.get_data(0, out_header.nspectra, pol=0)
+        np.testing.assert_array_equal(data_test_fil, data_out_fil)

@@ -5,7 +5,14 @@ from your import Your
 from your.formats.filwriter import make_sigproc_object
 from your.writer import Writer
 
-from .psrfits import read_fits_header, get_stokesi_data, downsample_data
+from .psrfits import (
+    read_fits_header,
+    get_stokesi_data,
+    downsample_data,
+    get_header_string,
+    sigproc_safe_string,
+    sigproc_safe_path,
+)
 
 
 def fits2fil(fitsfile: str, outfile: str, dchan_factor: int = 1, dt_factor: int = 1) -> None:
@@ -18,10 +25,12 @@ def fits2fil(fitsfile: str, outfile: str, dchan_factor: int = 1, dt_factor: int 
         os.makedirs(outdir, exist_ok=True)
 
     header0, header1 = read_fits_header(fitsfile)
-    bw = header0["OBSBW"]
+    bw = abs(header0["OBSBW"])
     centerfreq = header0["OBSFREQ"]
-    foff = header1["CHAN_BW"] * dchan_factor  # type: ignore
-    fch1 = centerfreq - (bw / 2) if foff > 0 else centerfreq + (bw / 2) # type: ignore
+    chan_bw = header1["CHAN_BW"]  # type: ignore
+    need_flip = chan_bw > 0
+    foff = -abs(chan_bw) * dchan_factor  # type: ignore
+    fch1 = centerfreq + (bw / 2)  # type: ignore
     tsamp = header1["TBIN"] * dt_factor  # type: ignore
     nchan = int(header1["NCHAN"]) // dchan_factor # type: ignore
     nbit = int(header1["NBITS"]) # type: ignore
@@ -31,9 +40,14 @@ def fits2fil(fitsfile: str, outfile: str, dchan_factor: int = 1, dt_factor: int 
         + header0["STT_OFFS"] / 86400.0  # type: ignore
     )
 
+    source_name = sigproc_safe_string(
+        get_header_string(header0, "SRC_NAME", default="Unknown"),
+        default="Unknown",
+    )
+    rawdatafile = sigproc_safe_path(outfile, default=os.path.basename(outfile) or outfile)
     sig = make_sigproc_object(
-        rawdatafile=outfile,
-        source_name=header0["SRC_NAME"], # type: ignore
+        rawdatafile=rawdatafile,
+        source_name=source_name,
         nchans=nchan,
         foff=foff,
         fch1=fch1,
@@ -47,6 +61,8 @@ def fits2fil(fitsfile: str, outfile: str, dchan_factor: int = 1, dt_factor: int 
     data = get_stokesi_data(fitsfile)
     if dchan_factor > 1 or dt_factor > 1:
         data = downsample_data(data, dchan_factor=dchan_factor, dt_factor=dt_factor)
+    if need_flip:
+        data = data[:, ::-1]
 
     sig.append_spectra(data, outfile)
 

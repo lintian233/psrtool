@@ -35,6 +35,75 @@ def read_fits_header(fitsfile: str) -> tuple[fits.Header, fits.Header]:
         header1 = hdul[1].header  #type: ignore
     return header0, header1
 
+
+def get_header_string(header: fits.Header, key: str, default: str = "") -> str:
+    value = header.get(key, "")
+    if isinstance(value, bytes):
+        try:
+            value = value.decode("ascii", "ignore")
+        except Exception:
+            value = value.decode(errors="ignore")
+    text = str(value).strip()
+    return text if text else default
+
+
+def sigproc_safe_string(value: object, default: str = "", max_len: int = 80) -> str:
+    text: str
+    if value is None:
+        text = ""
+    elif isinstance(value, bytes):
+        try:
+            text = value.decode("ascii", "ignore")
+        except Exception:
+            text = value.decode(errors="ignore")
+    else:
+        text = str(value)
+    text = text.strip()
+    if not text:
+        text = default
+    encoded = text.encode("ascii", "ignore")
+    if len(encoded) > max_len:
+        encoded = encoded[:max_len]
+    return encoded.decode("ascii", "ignore")
+
+
+def sigproc_safe_path(value: object, default: str = "", keep_parts: int = 1, max_len: int = 80) -> str:
+    text: str
+    if value is None:
+        text = ""
+    elif isinstance(value, bytes):
+        try:
+            text = value.decode("ascii", "ignore")
+        except Exception:
+            text = value.decode(errors="ignore")
+    else:
+        text = str(value)
+    text = text.strip()
+    if not text:
+        text = default
+    if not text:
+        return ""
+
+    sep = "/"
+    if "/" in text:
+        parts = [p for p in text.split("/") if p]
+        sep = "/"
+    elif "\\" in text:
+        parts = [p for p in text.split("\\") if p]
+        sep = "\\"
+    else:
+        parts = [text]
+
+    if keep_parts <= 0:
+        keep_parts = 1
+    if len(parts) > keep_parts:
+        text = sep.join(parts[-keep_parts:])
+    else:
+        text = sep.join(parts)
+
+    return sigproc_safe_string(text, default=default, max_len=max_len)
+
+
 def get_header_time_info(header0: fits.Header, header1: fits.Header) -> tuple[float, float]:
     """Extract time-related information from PSRFITS headers.
 
@@ -50,7 +119,9 @@ def get_header_time_info(header0: fits.Header, header1: fits.Header) -> tuple[fl
     tuple[float, float]
         Tuple containing (start_time, duration).
     """
-    start_time = header0['STT_IMJD'] + header0['STT_SMJD'] / 86400.0 + header0['STT_OFFS'] / 86400.0 #type: ignore
+    start_time = header0['STT_IMJD'] + header0['STT_SMJD'] / 86400.0 # type: ignore
+    if 'STT_OFFS' in header0:
+        start_time += header0['STT_OFFS'] / 86400.0  # type: ignore
     duration = header1['TBIN']  * header1['NSBLK'] * header1['NAXIS2'] #type: ignore
     return start_time, duration
 
@@ -102,7 +173,7 @@ def get_stokesi_data(fitsfile: str) -> np.ndarray:
         # Stokes I is usually the sum of the first two polarizations (e.g., XX + YY)    
         header1 = hdul[1].header  #type: ignore
         # print(f"NPOL: {header1['NPOL']}, POL_TYPE: {header1['POL_TYPE']}")
-        nchan = header1["NCHAN"]
+        nchan = int(header1["NCHAN"])
         dtype = data["DATA"].dtype
         data = data["DATA"].reshape(-1, header1["NPOL"], nchan)
         if header1["NPOL"] == 1:
