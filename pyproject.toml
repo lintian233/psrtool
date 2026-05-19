@@ -26,6 +26,8 @@ dev = [
 combinefits = "psrtool.cli:combinefitscli"
 fits2fil = "psrtool.cli:fits2filcli"
 fil2fits = "psrtool.cli:fil2fitscli"
+split-fil = "psrtool.cli:splitfilcli"
+split-fits = "psrtool.cli:splitfitscli"
 
 
 [tool.setuptools.packages.find]
